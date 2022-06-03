@@ -1,0 +1,55 @@
+---
+# tasks file for ansible-role-mysql
+- name: Install MySQL-server and pip3
+  yum:
+    name: mariadb-server, python3-pip
+    state: latest
+    update_cache: true
+- name: Install PyMySQL
+  vars:
+    ansible_python_interpreter: '/usr/bin/python3'
+  pip:
+    name: PyMySQL
+    executable: pip3
+- name: ensure mysql is running (and enabled)
+  service:
+    name: mariadb
+    state: started
+    enabled: yes
+- name: test mysql_secure_installation
+  vars:
+    ansible_python_interpreter: '/usr/bin/python3'
+  mysql_secure_installation:
+    login_password: ''
+    new_password: '{{ mysql_root_password }}'
+    user: root
+    login_host: localhost
+    hosts: ['localhost', '127.0.0.1', '::1', '10.0.100.160', '10.0.100.44']
+    change_root_password: true
+    remove_anonymous_user: true
+    disallow_root_login_remotely: false
+    remove_test_db: true
+- name: Create root password file
+  blockinfile:
+    path: ~/.my.cnf
+    create: yes
+    block: |
+      [client]
+      user=root
+      password={{ mysql_root_password }}
+- name: Create database user for phpMyAdmin with all database privileges
+  vars:
+    ansible_python_interpreter: '/usr/bin/python3'
+  community.mysql.mysql_user:
+    name: '{{ mysql_phpmyadmin_username }}'
+    password: '{{ mysql_phpmyadmin_password }}'
+    host: "10.0.100.160"
+    priv: '*.*:ALL,GRANT'
+    state: present
+- name: Add iptables rule to accept connections on 3306 port
+  ansible.builtin.iptables:
+    chain: INPUT
+    source: 0/0
+    protocol: tcp
+    destination_port: '3306'
+    jump: ACCEPT
