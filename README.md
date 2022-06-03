@@ -1,7 +1,7 @@
 Ansible-Role-MySQL
 =========
 
-A brief description of the role goes here.
+Ansible role for MySQL.
 
 Requirements
 ------------
